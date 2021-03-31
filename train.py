@@ -404,13 +404,34 @@ def evaluate(dataset):
     """Evaluates pre-trained model on development set."""
 
     model.eval()
+    output_dicts=[]
     eval_loss = 0.
     eval_loader = tqdm(load(dataset, args.batch_size, False))
     for i, (inputs, label) in enumerate(eval_loader, 1):
         with torch.no_grad():
-            loss = criterion(model(*inputs), label)
+        	logits=model(*inputs)
+            loss = criterion(logits, label)
         eval_loss += loss.item()
+        for j in range(logits.size(0)):
+                probs = F.softmax(logits[j], -1)
+                output_dict = {
+                    'index': args.batch_size * i + j,
+                    'true': label[j].item(),
+                    'pred': logits[j].argmax().item(),
+                    'conf': probs.max().item(),
+                    'logits': logits[j].cpu().numpy().tolist(),
+                    'probs': probs.cpu().numpy().tolist(),
+                }
+                output_dicts.append(output_dict)
         eval_loader.set_description(f'eval loss = {(eval_loss / i):.6f}')
+    eval_path=args.output_path[:-5]+'_eval'+'.json'
+    print(f'writing outputs to \'{eval_path}\'')
+
+    with open(eval_path, 'w+') as f:
+        for i, output_dict in enumerate(output_dicts):
+            output_dict_str = json.dumps(output_dict)
+            f.write(f'{output_dict_str}\n')
+
     return eval_loss / len(eval_loader)
 
 
