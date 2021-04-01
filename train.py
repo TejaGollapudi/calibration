@@ -3,7 +3,6 @@ import csv
 import os
 import sys
 import json
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -410,19 +409,19 @@ def evaluate(dataset):
     for i, (inputs, label) in enumerate(eval_loader, 1):
         with torch.no_grad():
         	logits=model(*inputs)
-            loss = criterion(logits, label)
+        	loss = criterion(logits, label)
         eval_loss += loss.item()
         for j in range(logits.size(0)):
-                probs = F.softmax(logits[j], -1)
-                output_dict = {
-                    'index': args.batch_size * i + j,
-                    'true': label[j].item(),
-                    'pred': logits[j].argmax().item(),
-                    'conf': probs.max().item(),
-                    'logits': logits[j].cpu().numpy().tolist(),
-                    'probs': probs.cpu().numpy().tolist(),
-                }
-                output_dicts.append(output_dict)
+        	probs = F.softmax(logits[j], -1)
+        	output_dict = {
+        			'index': args.batch_size * i + j,
+        			'true': label[j].item(),
+        			'pred': logits[j].argmax().item(),
+        			'conf': probs.max().item(),
+        			'logits': logits[j].cpu().numpy().tolist(),
+        			'probs': probs.cpu().numpy().tolist(),
+        			}
+        	output_dicts.append(output_dict)
         eval_loader.set_description(f'eval loss = {(eval_loss / i):.6f}')
     eval_path=args.output_path[:-5]+'_eval'+'.json'
     print(f'writing outputs to \'{eval_path}\'')
