@@ -25,6 +25,7 @@ parser.add_argument('--output_path', type=str, help='model output path')
 parser.add_argument('--train_path', type=str, help='train dataset path')
 parser.add_argument('--dev_path', type=str, help='dev dataset path')
 parser.add_argument('--test_path', type=str, help='test dataset path')
+parser.add_argument('--out_test_path', type=str, help='out of domain test dataset path')
 parser.add_argument('--epochs', type=int, default=3, help='number of epochs')
 parser.add_argument('--batch_size', type=int, default=16, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=2e-5, help='learning rate')
@@ -453,6 +454,10 @@ if args.test_path:
     test_dataset = TextDataset(args.test_path, processor)
     print(f'test samples = {len(test_dataset)}')
 
+if args.out_test_dataset:
+    out_test_dataset=TextDataset(args.out_test_dataset,MNLIProcessor)
+    print(f'out domain test samples = {len(out_test_dataset)}')
+
 if args.do_train:
     print()
     print('*** training ***')
@@ -503,6 +508,34 @@ if args.do_evaluate:
             output_dict_str = json.dumps(output_dict)
             f.write(f'{output_dict_str}\n')
 
+
+    o_output_dicts = []
+    model.load_state_dict(torch.load(args.ckpt_path))
+    model.eval()
+    out_test_loader = tqdm(load(out_test_dataset, args.batch_size, False))
+
+    for i, (inputs, label) in enumerate(out_test_loader):
+        with torch.no_grad():
+            logits = model(*inputs)
+            for j in range(logits.size(0)):
+                probs = F.softmax(logits[j], -1)
+                output_dict = {
+                    'index': args.batch_size * i + j,
+                    'true': label[j].item(),
+                    'pred': logits[j].argmax().item(),
+                    'conf': probs.max().item(),
+                    'logits': logits[j].cpu().numpy().tolist(),
+                    'probs': probs.cpu().numpy().tolist(),
+                }
+                o_output_dicts.append(output_dict)
+
+
+
+    with open(args.output_path[:-5]+'_MNLI]'+'.json', 'w+') as f:
+        for i, output_dict in enumerate(o_output_dicts):
+            output_dict_str = json.dumps(output_dict)
+            f.write(f'{output_dict_str}\n')
+
     y_true = [output_dict['true'] for output_dict in output_dicts]
     y_pred = [output_dict['pred'] for output_dict in output_dicts]
     y_conf = [output_dict['conf'] for output_dict in output_dicts]
@@ -516,5 +549,24 @@ if args.do_evaluate:
         'macro-F1': f1_score(y_true, y_pred, average='macro') * 100.,
         'confidence': np.mean(y_conf) * 100.,
     }
+    print('IN DOMAIN ACCURACY')
+    for k, v in results_dict.items():
+        print(f'{k} = {v}')
+
+    y_true = [output_dict['true'] for output_dict in o_output_dicts]
+    y_pred = [output_dict['pred'] for output_dict in o_output_dicts]
+    y_conf = [output_dict['conf'] for output_dict in o_output_dicts]
+
+    accuracy = accuracy_score(y_true, y_pred) * 100.
+    f1 = f1_score(y_true, y_pred, average='macro') * 100.
+    confidence = np.mean(y_conf) * 100.
+
+    results_dict = {
+        'accuracy': accuracy_score(y_true, y_pred) * 100.,
+        'macro-F1': f1_score(y_true, y_pred, average='macro') * 100.,
+        'confidence': np.mean(y_conf) * 100.,
+    }
+
+    print('OUT OF DOMAIN ACCURACY')
     for k, v in results_dict.items():
         print(f'{k} = {v}')
