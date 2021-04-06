@@ -455,7 +455,7 @@ if args.test_path:
     print(f'test samples = {len(test_dataset)}')
 
 if args.out_test_path:
-    out_test_dataset=TextDataset(args.out_test_dataset,MNLIProcessor)
+    out_test_dataset=TextDataset(args.out_test_path,MNLIProcessor)
     print(f'out domain test samples = {len(out_test_dataset)}')
 
 if args.do_train:
