@@ -400,7 +400,7 @@ def train(dataset):
     return train_loss / len(train_loader)
 
 
-def evaluate(dataset):
+def evaluate(dataset,epoch):
     """Evaluates pre-trained model on development set."""
 
     model.eval()
@@ -424,7 +424,7 @@ def evaluate(dataset):
         			}
         	output_dicts.append(output_dict)
         eval_loader.set_description(f'eval loss = {(eval_loss / i):.6f}')
-    eval_path=args.output_path[:-5]+'_eval'+'.json'
+    eval_path=args.output_path[:-5]+'_eval_'+str(epoch)'_.json'
     print(f'writing outputs to \'{eval_path}\'')
 
     with open(eval_path, 'w+') as f:
@@ -465,7 +465,7 @@ if args.do_train:
     best_loss = float('inf')
     for epoch in range(1, args.epochs + 1):
         train_loss = train(train_dataset)
-        eval_loss = evaluate(dev_dataset)
+        eval_loss = evaluate(dev_dataset,epoch)
         if eval_loss < best_loss:
             best_loss = eval_loss
             torch.save(model.state_dict(), args.ckpt_path)
