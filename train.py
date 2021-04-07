@@ -424,7 +424,7 @@ def evaluate(dataset,epoch):
         			}
         	output_dicts.append(output_dict)
         eval_loader.set_description(f'eval loss = {(eval_loss / i):.6f}')
-    eval_path=args.output_path[:-5]+'_eval_'+str(epoch)'_.json'
+    eval_path=args.output_path[:-5]+'_eval_'+str(epoch)+'_.json'
     print(f'writing outputs to \'{eval_path}\'')
 
     with open(eval_path, 'w+') as f:
