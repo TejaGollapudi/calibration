@@ -45,7 +45,7 @@ assert args.model in ('bert-base-uncased', 'roberta-base')
 if args.task in ('SNLI', 'MNLI'):
     n_classes = 3
 elif args.task in ('Disaster'):
-	n_classes=6
+	n_classes=7
 elif args.task in ('QQP', 'TwitterPPDB'):
     n_classes = 2
 elif args.task in ('SWAG', 'HellaSWAG'):
