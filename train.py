@@ -13,12 +13,12 @@ from transformers import AdamW, AutoModel, AutoTokenizer
 from tqdm import tqdm
 
 
-csv.field_size_limit(sys.maxsize)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--device', type=int, default=0, help='CUDA device')
 parser.add_argument('--model', type=str, help='pre-trained model (bert-base-uncased, roberta-base)')
-parser.add_argument('--task', type=str, help='task name (SNLI, MNLI, QQP, TwitterPPDB, SWAG, HellaSWAG)')
+parser.add_argument('--task', type=str, help='task name (SNLI, MNLI, QQP, TwitterPPDB, SWAG, HellaSWAG,Disaster)')
 parser.add_argument('--max_seq_length', type=int, default=256, help='max sequence length')
 parser.add_argument('--ckpt_path', type=str, help='model checkpoint path')
 parser.add_argument('--output_path', type=str, help='model output path')
@@ -38,12 +38,14 @@ args = parser.parse_args()
 print(args)
 
 
-assert args.task in ('SNLI', 'MNLI', 'QQP', 'TwitterPPDB', 'SWAG', 'HellaSWAG')
+assert args.task in ('SNLI', 'MNLI', 'QQP', 'TwitterPPDB', 'SWAG', 'HellaSWAG','Disaster')
 assert args.model in ('bert-base-uncased', 'roberta-base')
 
 
 if args.task in ('SNLI', 'MNLI'):
     n_classes = 3
+elif args.task in ('Disaster'):
+	n_classes=6
 elif args.task in ('QQP', 'TwitterPPDB'):
     n_classes = 2
 elif args.task in ('SWAG', 'HellaSWAG'):
@@ -88,6 +90,31 @@ def encode_pair_inputs(sentence1, sentence2):
 
     inputs = tokenizer.encode_plus(
         sentence1, sentence2, add_special_tokens=True, max_length=args.max_seq_length
+    )
+    input_ids = inputs['input_ids']
+    segment_ids = inputs['token_type_ids']
+    attention_mask = inputs['attention_mask']
+    padding_length = args.max_seq_length - len(input_ids)
+    input_ids += [tokenizer.pad_token_id] * padding_length
+    segment_ids += [0] * padding_length
+    attention_mask += [0] * padding_length
+    for input_elem in (input_ids, segment_ids, attention_mask):
+        assert len(input_elem) == args.max_seq_length
+    return (
+        cuda(torch.tensor(input_ids)).long(),
+        cuda(torch.tensor(segment_ids)).long(),
+        cuda(torch.tensor(attention_mask)).long(),
+    )
+
+def encode_single_inputs(sentence1):
+    """
+    Encodes pair inputs for pre-trained models using the template
+    [CLS] sentence1 [SEP]. Used for Classification.
+    Returns input_ids, segment_ids, and attention_mask.
+    """
+
+    inputs = tokenizer.encode_plus(
+        sentence1, add_special_tokens=True, max_length=args.max_seq_length
     )
     input_ids = inputs['input_ids']
     segment_ids = inputs['token_type_ids']
@@ -170,6 +197,32 @@ class SNLIProcessor:
                     if self.valid_inputs(sentence1, sentence2, label):
                         label = self.label_map[label]
                         samples.append((sentence1, sentence2, label))
+                except:
+                    pass
+        return samples
+
+class DisasterProcessor:
+    """Data loader for SNLI."""
+
+    def __init__(self):
+        self.label_map = {'Affected individuals': 0, 'Caution and advice': 1, 'Not applicable': 2,'Other Useful Information':3,'Infrastructure and utilities':4,'Sympathy and support':5,'Donations and volunteering':6}
+
+    def valid_inputs(self, sentence1, label):
+        return len(sentence1) > 0  and label in self.label_map
+
+    def load_samples(self, path):
+        samples = []
+        with open(path, newline='',encoding='utf-8') as f:
+            reader = csv.reader(f, delimiter='\t')
+            next(reader)  # skip header
+            desc = f'loading \'{path}\''
+            for row in tqdm(reader, desc=desc):
+                try:
+                    sentence1 = row[0]
+                    label = row[1]
+                    if self.valid_inputs(sentence1, label):
+                        label = self.label_map[label]
+                        samples.append((sentence1, label))
                 except:
                     pass
         return samples
@@ -316,6 +369,12 @@ class TextDataset(Dataset):
                     sentence1, sentence2
                 )
                 packed_inputs = (sentence1, sentence2)
+            elif args.task in ('Disaster'):
+            	sentence1, label = sample
+            	input_ids, segment_ids, attention_mask = encode_single_inputs(
+                    sentence1
+                )
+
             elif args.task in ('SWAG', 'HellaSWAG'):
                 context, ending_start, endings, label = sample
                 input_ids, segment_ids, attention_mask = encode_mc_inputs(
@@ -456,7 +515,7 @@ if args.test_path:
 
 if args.out_test_path:
 	print(args.out_test_path)
-	out_test_dataset=TextDataset(args.out_test_path,MNLIProcessor())
+	out_test_dataset=TextDataset(args.out_test_path,DisasterProcessor())
 	print(f'out domain test samples = {len(out_test_dataset)}')
 
 if args.do_train:
