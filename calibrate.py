@@ -17,6 +17,7 @@ parser.add_argument('--test_path', type=str, help='testing output file')
 parser.add_argument('--label_smoothing', type=float, default=0., help='label smoothing \\alpha')
 parser.add_argument('--do_train', action='store_true', default=False, help='enable training')
 parser.add_argument('--do_evaluate', action='store_true', default=False, help='enable evaluation')
+parser.add_argument('--do_grid_search',action='store_true',default=False,help='perform grid search on temperature')
 args = parser.parse_args()
 print(args)
 
@@ -195,3 +196,44 @@ if args.do_evaluate:
     print('*** evaluating ***')
     for k, v in output_dict.items():
         print(f'{k} = {v}')
+
+if args.do_grid_search:
+	grid_map=np.arange(0.0, 2.5, 0.1)
+	elems = load_output(args.test_path)
+	n_classes = len(elems[0]['logits'])
+	labels = [elem['true'] for elem in elems]
+	preds = [elem['pred'] for elem in elems]
+	best_acc=0
+	best_conf=0
+	best_temp=0
+	best_nll=0
+	best_e_e=0
+	best_me=0
+	best_te=0
+	for temp in grid_map:
+		log_probs = [F.log_softmax(elem['logits'] / temp, 0) for elem in elems]
+		confs = [prob.exp().max().item() for prob in log_probs]
+		nll = [cross_entropy(log_prob, label, n_classes) for log_prob, label in zip(log_probs, labels)]
+		bucket_values, bucket_indices = get_bucket_scores(confs)
+		bucket_confidence = get_bucket_confidence(bucket_values)
+		bucket_accuracy = get_bucket_accuracy(bucket_indices, labels, preds)
+		accuracy = accuracy_score(labels, preds) * 100.
+		avg_conf = np.mean(confs) * 100.
+		avg_nll = np.mean(nll)
+		expected_error, max_error, total_error = calculate_error(len(elems), bucket_values, bucket_confidence, bucket_accuracy)
+		if expected_error < best_e_e:
+			best_acc=accuracy
+			best_conf=avg_conf
+			best_temp=temp
+			best_nll=avg_nll
+			best_e_e=expected_error
+			best_me=max_error
+			best_te=total_error
+	output_dict = {'accuracy': best_acc,'confidence': best_conf,'temperature': best_temp,'neg log likelihood': best_nll,'expected error': best_e_e,'max error': best_me,'total error': best_te,}
+
+	print()
+	print('*'*20)
+	print("GRID SEARCH")
+	print('*** evaluating ***')
+	for k, v in output_dict.items():
+		print(f'{k} = {v}')
