@@ -198,7 +198,7 @@ if args.do_evaluate:
         print(f'{k} = {v}')
 
 if args.do_grid_search:
-	grid_map=np.arange(0.0, 2.5, 0.1)
+	grid_map=np.arange(0.0, 2.5, 0.01)
 	print(grid_map)
 	elems = load_output(args.test_path)
 	n_classes = len(elems[0]['logits'])
@@ -212,7 +212,6 @@ if args.do_grid_search:
 	best_me=0
 	best_te=0
 	for temp in grid_map:
-		print(temp)
 		log_probs = [F.log_softmax(elem['logits'] / temp, 0) for elem in elems]
 		confs = [prob.exp().max().item() for prob in log_probs]
 		nll = [cross_entropy(log_prob, label, n_classes) for log_prob, label in zip(log_probs, labels)]
