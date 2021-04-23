@@ -207,7 +207,7 @@ if args.do_grid_search:
 	best_conf=0
 	best_temp=0
 	best_nll=0
-	best_e_e=0
+	best_e_e=float('inf')
 	best_me=0
 	best_te=0
 	for temp in grid_map:
