@@ -199,6 +199,7 @@ if args.do_evaluate:
 
 if args.do_grid_search:
 	grid_map=np.arange(0.0, 2.5, 0.1)
+	print(grid_map)
 	elems = load_output(args.test_path)
 	n_classes = len(elems[0]['logits'])
 	labels = [elem['true'] for elem in elems]
@@ -211,7 +212,7 @@ if args.do_grid_search:
 	best_me=0
 	best_te=0
 	for temp in grid_map:
-		print('temp value: '+str(temp),end = "\r")
+		print(temp)
 		log_probs = [F.log_softmax(elem['logits'] / temp, 0) for elem in elems]
 		confs = [prob.exp().max().item() for prob in log_probs]
 		nll = [cross_entropy(log_prob, label, n_classes) for log_prob, label in zip(log_probs, labels)]
@@ -223,6 +224,7 @@ if args.do_grid_search:
 		avg_nll = np.mean(nll)
 		expected_error, max_error, total_error = calculate_error(len(elems), bucket_values, bucket_confidence, bucket_accuracy)
 		if expected_error < best_e_e:
+
 			best_acc=accuracy
 			best_conf=avg_conf
 			best_temp=temp
