@@ -222,8 +222,9 @@ if args.do_grid_search:
 		avg_conf = np.mean(confs) * 100.
 		avg_nll = np.mean(nll)
 		expected_error, max_error, total_error = calculate_error(len(elems), bucket_values, bucket_confidence, bucket_accuracy)
+		print(expected_error)
 		if expected_error < best_e_e:
-
+			print('')
 			best_acc=accuracy
 			best_conf=avg_conf
 			best_temp=temp
