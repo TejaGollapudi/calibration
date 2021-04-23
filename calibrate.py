@@ -199,7 +199,6 @@ if args.do_evaluate:
 
 if args.do_grid_search:
 	grid_map=np.arange(0.0, 2.5, 0.01)
-	print(grid_map)
 	elems = load_output(args.test_path)
 	n_classes = len(elems[0]['logits'])
 	labels = [elem['true'] for elem in elems]
@@ -222,7 +221,6 @@ if args.do_grid_search:
 		avg_conf = np.mean(confs) * 100.
 		avg_nll = np.mean(nll)
 		expected_error, max_error, total_error = calculate_error(len(elems), bucket_values, bucket_confidence, bucket_accuracy)
-		print(expected_error)
 		if expected_error < best_e_e:
 			print('')
 			best_acc=accuracy
