@@ -211,7 +211,7 @@ if args.do_grid_search:
 	best_me=0
 	best_te=0
 	for temp in grid_map:
-		print('temp value: ',+str(temp),end = "\r")
+		print('temp value: '+str(temp),end = "\r")
 		log_probs = [F.log_softmax(elem['logits'] / temp, 0) for elem in elems]
 		confs = [prob.exp().max().item() for prob in log_probs]
 		nll = [cross_entropy(log_prob, label, n_classes) for log_prob, label in zip(log_probs, labels)]
