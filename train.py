@@ -12,7 +12,8 @@ from sklearn.metrics import accuracy_score, f1_score
 from transformers import AdamW, AutoModel, AutoTokenizer
 from tqdm import tqdm
 
-
+torch.manual_seed(0)
+np.random.seed(0)
 
 
 parser = argparse.ArgumentParser()

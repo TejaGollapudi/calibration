@@ -21,6 +21,9 @@ parser.add_argument('--do_grid_search',action='store_true',default=False,help='p
 args = parser.parse_args()
 print(args)
 
+torch.manual_seed(0)
+np.random.seed(0)
+
 
 def load_output(path):
     """Loads output file, wraps elements in tensor."""
